@@ -150,6 +150,28 @@ def test_db_is_fresh_each_time():
     assert engine.run_query("SELECT COUNT(*) FROM employees").rows == [(14,)]
 
 
+def test_schema_details_foreign_keys():
+    d = engine.schema_details()
+    refs = {(t, c.name): c.references for t, cols in d.items() for c in cols if c.references}
+    assert refs == {
+        ("employees", "department_id"): ("departments", "id"),
+        ("employees", "manager_id"): ("employees", "id"),
+        ("orders", "customer_id"): ("customers", "id"),
+        ("orders", "employee_id"): ("employees", "id"),
+        ("order_items", "order_id"): ("orders", "id"),
+        ("order_items", "product_id"): ("products", "id"),
+    }
+    assert [c.name for c in d["order_items"] if c.pk] == ["order_id", "product_id"]
+
+
+def test_er_diagram_dot():
+    dot = engine.er_diagram_dot()
+    assert dot.startswith("digraph") and dot.rstrip().endswith("}")
+    assert dot.count("->") == 6
+    for table in engine.schema_info():
+        assert f"  {table} [label=<" in dot
+
+
 def test_schema_info():
     info = engine.schema_info()
     assert set(info) == {"departments", "employees", "customers",

@@ -169,6 +169,84 @@ def schema_info() -> dict[str, list[tuple[str, str]]]:
         conn.close()
 
 
+@dataclass
+class Column:
+    name: str
+    type: str
+    pk: bool = False
+    not_null: bool = False
+    references: tuple[str, str] | None = None   # (таблица, столбец)
+
+
+def schema_details() -> dict[str, list[Column]]:
+    """Таблицы со столбцами, первичными и внешними ключами (по REFERENCES в schema.sql)."""
+    conn = new_connection()
+    try:
+        tables = [r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY rowid")]
+        result: dict[str, list[Column]] = {}
+        for t in tables:
+            fks = {row[3]: (row[2], row[4] or "id")
+                   for row in conn.execute(f"PRAGMA foreign_key_list({t})")}
+            result[t] = [
+                Column(name=c[1], type=c[2].lower(), pk=c[5] > 0, not_null=bool(c[3]),
+                       references=fks.get(c[1]))
+                for c in conn.execute(f"PRAGMA table_info({t})")
+            ]
+        return result
+    finally:
+        conn.close()
+
+
+def _esc(s: str) -> str:
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def er_diagram_dot() -> str:
+    """ER-диаграмма учебной базы в формате Graphviz DOT."""
+    schema = schema_details()
+    lines = [
+        "digraph ER {",
+        '  graph [rankdir=LR, bgcolor="transparent", pad=0.2, nodesep=0.45, ranksep=0.9, '
+        'fontname="Helvetica"];',
+        '  node [shape=plain, fontname="Helvetica", fontsize=11];',
+        '  edge [color="#94a3b8", penwidth=1.3, dir=both, arrowtail=teetee, '
+        'arrowhead=crow, arrowsize=0.8];',
+    ]
+    for table, cols in schema.items():
+        rows = [
+            '<table border="1" cellborder="0" cellspacing="0" cellpadding="5" '
+            'bgcolor="#ffffff" color="#cbd5e1" style="rounded">',
+            f'<tr><td colspan="3" bgcolor="#334155" align="center">'
+            f'<font color="#ffffff" point-size="12"><b> {_esc(table)} </b></font></td></tr>',
+        ]
+        for c in cols:
+            marks = []
+            if c.pk:
+                marks.append('<font color="#b45309"><b>PK</b></font>')
+            if c.references:
+                marks.append('<font color="#2563eb"><b>FK</b></font>')
+            key = " ".join(marks)
+            name = f"<b>{_esc(c.name)}</b>" if c.pk else _esc(c.name)
+            rows.append(
+                f'<tr><td port="{c.name}_in" align="left" width="24">{key}</td>'
+                f'<td align="left"><font color="#0f172a">{name}</font></td>'
+                f'<td port="{c.name}_out" align="left">'
+                f'<font color="#64748b" point-size="10">{_esc(c.type)}</font></td></tr>')
+        rows.append("</table>")
+        lines.append(f'  {table} [label=<{"".join(rows)}>];')
+
+    for table, cols in schema.items():
+        for c in cols:
+            if not c.references:
+                continue
+            ref_table, ref_col = c.references
+            # Ребро от «одного» (первичный ключ) ко «многим» (внешний ключ).
+            lines.append(f'  {ref_table}:{ref_col}_out:e -> {table}:{c.name}_in:w;')
+    lines.append("}")
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------- выполнение
 
 _COMMENT_RE = re.compile(r"(--[^\n]*)|(/\*.*?\*/)", re.S)
