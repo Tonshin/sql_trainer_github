@@ -1,0 +1,280 @@
+# Задачи тренажёра.
+#
+# Поля задачи:
+#   id        — уникальный идентификатор (не меняйте у существующих задач)
+#   title     — короткое название
+#   text      — условие (поддерживается Markdown)
+#   solution  — эталонный запрос; с его результатом сравнивается ответ
+#   hint      — подсказка
+#   ordered   — true, если важен порядок строк (задачи с ORDER BY); по умолчанию false
+#
+# Имена столбцов при проверке не сравниваются, а их порядок и значения — сравниваются.
+
+topics:
+  - name: "1. Основы SELECT"
+    tasks:
+      - id: select_all_departments
+        title: "Все отделы"
+        text: "Выведите все столбцы и все строки таблицы `departments`."
+        solution: |
+          SELECT * FROM departments;
+        hint: "`*` означает «все столбцы»."
+
+      - id: select_employee_names
+        title: "Имена и должности"
+        text: "Выведите имя, фамилию и должность каждого сотрудника (`first_name`, `last_name`, `position`)."
+        solution: |
+          SELECT first_name, last_name, position FROM employees;
+        hint: "Перечислите нужные столбцы через запятую после SELECT."
+
+      - id: select_distinct_cities
+        title: "Города клиентов"
+        text: "Выведите список городов, в которых есть клиенты. Каждый город — один раз."
+        solution: |
+          SELECT DISTINCT city FROM customers;
+        hint: "Повторы убирает ключевое слово DISTINCT."
+
+      - id: select_price_with_vat
+        title: "Цена с НДС"
+        text: "Для каждого товара выведите название и цену с НДС 20% (цена × 1.2)."
+        solution: |
+          SELECT name, price * 1.2 AS price_with_vat FROM products;
+        hint: "В SELECT можно писать выражения: `price * 1.2`. Псевдоним задаётся через AS."
+
+  - name: "2. Фильтрация WHERE"
+    tasks:
+      - id: where_high_salary
+        title: "Высокие зарплаты"
+        text: "Выведите имя, фамилию и зарплату сотрудников, которые получают больше 100 000."
+        solution: |
+          SELECT first_name, last_name, salary FROM employees WHERE salary > 100000;
+        hint: "Условие пишется после WHERE: `salary > 100000`."
+
+      - id: where_sales_managers_2020
+        title: "Новые менеджеры"
+        text: "Выведите имя, фамилию и дату найма менеджеров по продажам (`position = 'Менеджер по продажам'`), нанятых 1 января 2020 года или позже."
+        solution: |
+          SELECT first_name, last_name, hire_date
+          FROM employees
+          WHERE position = 'Менеджер по продажам' AND hire_date >= '2020-01-01';
+        hint: "Два условия объединяются через AND. Даты в формате YYYY-MM-DD можно сравнивать как строки."
+
+      - id: where_between_price
+        title: "Периферия средней цены"
+        text: "Выведите название и цену товаров из категории «Периферия» с ценой от 5 000 до 15 000 включительно."
+        solution: |
+          SELECT name, price FROM products
+          WHERE category = 'Периферия' AND price BETWEEN 5000 AND 15000;
+        hint: "`BETWEEN a AND b` включает обе границы."
+
+      - id: where_null_email
+        title: "Без почты"
+        text: "Выведите имя и фамилию сотрудников, у которых не указан email."
+        solution: |
+          SELECT first_name, last_name FROM employees WHERE email IS NULL;
+        hint: "С NULL нельзя сравнивать через `=`, нужен оператор `IS NULL`."
+
+      - id: where_like_ooo
+        title: "Только ООО"
+        text: "Выведите названия и города клиентов, чьё название начинается с «ООО»."
+        solution: |
+          SELECT name, city FROM customers WHERE name LIKE 'ООО%';
+        hint: "`LIKE 'ООО%'`: знак `%` означает любую последовательность символов."
+
+  - name: "3. Сортировка и LIMIT"
+    tasks:
+      - id: order_top3_products
+        title: "Три самых дорогих"
+        text: "Выведите название и цену трёх самых дорогих товаров, от самого дорогого к более дешёвым."
+        solution: |
+          SELECT name, price FROM products ORDER BY price DESC LIMIT 3;
+        hint: "`ORDER BY price DESC` сортирует по убыванию, `LIMIT 3` оставляет первые три строки."
+        ordered: true
+
+      - id: order_by_hire_date
+        title: "Новички первыми"
+        text: "Выведите имя, фамилию и дату найма всех сотрудников, начиная с самых недавно нанятых."
+        solution: |
+          SELECT first_name, last_name, hire_date FROM employees ORDER BY hire_date DESC;
+        hint: "Чем позже дата, тем «больше» строка: нужна сортировка по убыванию."
+        ordered: true
+
+      - id: order_customers_city_name
+        title: "Клиенты по городам"
+        text: "Выведите город и название всех клиентов. Отсортируйте по городу по алфавиту, а внутри одного города — по названию."
+        solution: |
+          SELECT city, name FROM customers ORDER BY city, name;
+        hint: "В ORDER BY можно перечислить несколько столбцов через запятую."
+        ordered: true
+
+  - name: "4. Агрегаты и GROUP BY"
+    tasks:
+      - id: agg_count_employees
+        title: "Сколько сотрудников"
+        text: "Посчитайте общее количество сотрудников."
+        solution: |
+          SELECT COUNT(*) FROM employees;
+        hint: "`COUNT(*)` считает строки."
+
+      - id: agg_salary_stats
+        title: "Статистика зарплат"
+        text: "Выведите в одной строке среднюю, минимальную и максимальную зарплату (в таком порядке). Среднюю округлите до 2 знаков."
+        solution: |
+          SELECT ROUND(AVG(salary), 2), MIN(salary), MAX(salary) FROM employees;
+        hint: "Функции AVG, MIN, MAX. Округление делает `ROUND(x, 2)`."
+
+      - id: agg_count_by_department
+        title: "Сотрудники по отделам"
+        text: "Для каждого `department_id` выведите количество сотрудников. Сотрудники без отдела тоже должны попасть в результат отдельной группой."
+        solution: |
+          SELECT department_id, COUNT(*) FROM employees GROUP BY department_id;
+        hint: "GROUP BY department_id. NULL образует свою группу."
+
+      - id: agg_having_avg_salary
+        title: "Богатые отделы"
+        text: "Выведите `department_id` и среднюю зарплату для отделов, где средняя зарплата больше 110 000."
+        solution: |
+          SELECT department_id, AVG(salary)
+          FROM employees
+          GROUP BY department_id
+          HAVING AVG(salary) > 110000;
+        hint: "Условие на агрегат пишется в HAVING, а не в WHERE."
+
+      - id: agg_orders_by_status
+        title: "Заказы по статусам"
+        text: "Выведите каждый статус заказа и количество заказов с этим статусом."
+        solution: |
+          SELECT status, COUNT(*) FROM orders GROUP BY status;
+        hint: "Сгруппируйте таблицу `orders` по столбцу `status`."
+
+  - name: "5. Соединения JOIN"
+    tasks:
+      - id: join_employee_department
+        title: "Сотрудник и отдел"
+        text: "Выведите имя, фамилию сотрудника и название его отдела. Сотрудников без отдела не выводите."
+        solution: |
+          SELECT e.first_name, e.last_name, d.name
+          FROM employees e
+          JOIN departments d ON d.id = e.department_id;
+        hint: "`JOIN departments d ON d.id = e.department_id`."
+
+      - id: join_left_all_employees
+        title: "Все сотрудники и отделы"
+        text: "То же самое, но теперь выведите всех сотрудников: у кого нет отдела, в столбце названия отдела должен быть NULL."
+        solution: |
+          SELECT e.first_name, e.last_name, d.name
+          FROM employees e
+          LEFT JOIN departments d ON d.id = e.department_id;
+        hint: "LEFT JOIN сохраняет все строки левой таблицы."
+
+      - id: join_empty_departments
+        title: "Пустые отделы"
+        text: "Выведите названия отделов, в которых нет ни одного сотрудника."
+        solution: |
+          SELECT d.name
+          FROM departments d
+          LEFT JOIN employees e ON e.department_id = d.id
+          WHERE e.id IS NULL;
+        hint: "LEFT JOIN от departments к employees, затем оставьте строки, где сотрудник не нашёлся (`e.id IS NULL`)."
+
+      - id: join_order_totals
+        title: "Сумма заказа"
+        text: "Для каждого заказа выведите его `id` и общую сумму (сумма `quantity * unit_price` по позициям)."
+        solution: |
+          SELECT order_id, SUM(quantity * unit_price) FROM order_items GROUP BY order_id;
+        hint: "Здесь хватит таблицы `order_items` и GROUP BY по `order_id`."
+
+      - id: join_revenue_by_customer
+        title: "Выручка по клиентам"
+        text: "Выведите название клиента и его суммарную выручку по всем заказам, кроме отменённых (`status = 'cancelled'`). Отсортируйте по выручке по убыванию. Клиентов без заказов не выводите."
+        solution: |
+          SELECT c.name, SUM(oi.quantity * oi.unit_price) AS revenue
+          FROM customers c
+          JOIN orders o       ON o.customer_id = c.id
+          JOIN order_items oi ON oi.order_id = o.id
+          WHERE o.status <> 'cancelled'
+          GROUP BY c.id, c.name
+          ORDER BY revenue DESC;
+        hint: "Соедините три таблицы: customers → orders → order_items. Отменённые отсейте в WHERE, затем GROUP BY и ORDER BY."
+        ordered: true
+
+      - id: join_self_manager
+        title: "Сотрудник и руководитель"
+        text: "Выведите имя и фамилию сотрудника, а также имя и фамилию его руководителя (`manager_id`). Сотрудников без руководителя не выводите."
+        solution: |
+          SELECT e.first_name, e.last_name, m.first_name, m.last_name
+          FROM employees e
+          JOIN employees m ON m.id = e.manager_id;
+        hint: "Соедините таблицу `employees` саму с собой под двумя разными псевдонимами."
+
+  - name: "6. Подзапросы"
+    tasks:
+      - id: sub_above_avg_salary
+        title: "Выше среднего"
+        text: "Выведите имя, фамилию и зарплату сотрудников, получающих больше средней зарплаты по компании."
+        solution: |
+          SELECT first_name, last_name, salary
+          FROM employees
+          WHERE salary > (SELECT AVG(salary) FROM employees);
+        hint: "Среднюю зарплату можно получить подзапросом прямо в WHERE."
+
+      - id: sub_never_ordered
+        title: "Невостребованные товары"
+        text: "Выведите названия товаров, которые ни разу не заказывали."
+        solution: |
+          SELECT name FROM products
+          WHERE id NOT IN (SELECT product_id FROM order_items);
+        hint: "`NOT IN (SELECT product_id FROM order_items)` или `NOT EXISTS`."
+
+      - id: sub_repeat_customers
+        title: "Постоянные клиенты"
+        text: "Выведите названия клиентов, сделавших больше одного заказа (с любым статусом)."
+        solution: |
+          SELECT name FROM customers
+          WHERE id IN (
+              SELECT customer_id FROM orders
+              GROUP BY customer_id
+              HAVING COUNT(*) > 1
+          );
+        hint: "Во вложенном запросе сгруппируйте заказы по клиенту и оставьте группы с `COUNT(*) > 1`."
+
+  - name: "7. Оконные функции"
+    tasks:
+      - id: win_rank_in_department
+        title: "Ранг внутри отдела"
+        text: "Для сотрудников, у которых есть отдел, выведите `department_id`, имя, фамилию, зарплату и ранг зарплаты внутри отдела (1 — самая высокая). При равных зарплатах ранг одинаковый, а следующий ранг пропускается."
+        solution: |
+          SELECT department_id, first_name, last_name, salary,
+                 RANK() OVER (PARTITION BY department_id ORDER BY salary DESC)
+          FROM employees
+          WHERE department_id IS NOT NULL;
+        hint: "`RANK() OVER (PARTITION BY ... ORDER BY ... DESC)`."
+
+      - id: win_diff_from_dept_avg
+        title: "Отклонение от средней"
+        text: "Для каждого сотрудника, у которого есть отдел, выведите имя, фамилию, зарплату и разницу между его зарплатой и средней зарплатой его отдела."
+        solution: |
+          SELECT first_name, last_name, salary,
+                 salary - AVG(salary) OVER (PARTITION BY department_id)
+          FROM employees
+          WHERE department_id IS NOT NULL;
+        hint: "AVG тоже может быть оконной функцией: `AVG(salary) OVER (PARTITION BY department_id)`."
+
+      - id: win_running_revenue
+        title: "Нарастающий итог"
+        text: "Для каждого месяца (формат `YYYY-MM`) выведите месяц, выручку за месяц и выручку нарастающим итогом с начала периода. Отменённые заказы не учитывайте. Отсортируйте по месяцу."
+        solution: |
+          WITH monthly AS (
+              SELECT strftime('%Y-%m', o.order_date) AS month,
+                     SUM(oi.quantity * oi.unit_price) AS revenue
+              FROM orders o
+              JOIN order_items oi ON oi.order_id = o.id
+              WHERE o.status <> 'cancelled'
+              GROUP BY month
+          )
+          SELECT month, revenue,
+                 SUM(revenue) OVER (ORDER BY month)
+          FROM monthly
+          ORDER BY month;
+        hint: "Сначала посчитайте выручку по месяцам (удобно в CTE через WITH), затем `SUM(revenue) OVER (ORDER BY month)`. Месяц даёт `strftime('%Y-%m', order_date)`."
+        ordered: true
