@@ -36,14 +36,23 @@ class Task:
     title: str
     text: str
     solution: str
-    hint: str = ""
+    hints: list[str] = field(default_factory=list)   # от лёгкого намёка к подробному
+    template: str = ""                               # заготовка с пропусками ___
     ordered: bool = False
     topic: str = ""
+    topic_id: str = ""
+
+    @property
+    def hint_levels(self) -> int:
+        """Сколько всего уровней подсказки, включая заготовку."""
+        return len(self.hints) + (1 if self.template else 0)
 
 
 @dataclass
 class Topic:
     name: str
+    id: str = ""
+    theory: str = ""          # текст теории в Markdown
     tasks: list[Task] = field(default_factory=list)
 
 
@@ -82,20 +91,50 @@ def load_schema_sql() -> str:
 def load_topics(path: Path = TASKS_PATH) -> list[Topic]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     topics: list[Topic] = []
-    for t in data["topics"]:
-        topic = Topic(name=t["name"])
+    for n, t in enumerate(data["topics"], start=1):
+        theory = ""
+        if t.get("theory"):
+            theory = (path.parent / t["theory"]).read_text(encoding="utf-8")
+        topic = Topic(name=t["name"], id=t.get("id") or f"topic{n}", theory=theory)
         for raw in t["tasks"]:
+            hints = raw.get("hints") or []
+            if raw.get("hint"):              # старый формат: одна подсказка строкой
+                hints = [raw["hint"], *hints]
             topic.tasks.append(Task(
                 id=raw["id"],
                 title=raw["title"],
                 text=raw["text"],
                 solution=raw["solution"].strip(),
-                hint=raw.get("hint", ""),
+                hints=[str(h) for h in hints],
+                template=(raw.get("template") or "").strip(),
                 ordered=bool(raw.get("ordered", False)),
                 topic=topic.name,
+                topic_id=topic.id,
             ))
         topics.append(topic)
     return topics
+
+
+_SQL_BLOCK_RE = re.compile(r"```sql[ \t]*\n(.*?)```", re.S)
+
+
+def split_theory(md: str) -> list[tuple[str, str]]:
+    """Делит теорию на части: ("md", текст) и ("sql", запрос).
+
+    Запускаемыми считаются только блоки ```sql; блоки без языка остаются текстом.
+    """
+    parts: list[tuple[str, str]] = []
+    pos = 0
+    for m in _SQL_BLOCK_RE.finditer(md):
+        text = md[pos:m.start()].strip()
+        if text:
+            parts.append(("md", text))
+        parts.append(("sql", m.group(1).strip()))
+        pos = m.end()
+    tail = md[pos:].strip()
+    if tail:
+        parts.append(("md", tail))
+    return parts
 
 
 # ---------------------------------------------------------------- база

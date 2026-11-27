@@ -31,6 +31,48 @@ def test_ordered_solution_has_no_ties(task):
     assert len(set(res.rows)) == len(res.rows)
 
 
+@pytest.mark.parametrize("task", ALL_TASKS, ids=lambda t: t.id)
+def test_hint_levels(task):
+    assert len(task.hints) >= 2, "нужны хотя бы идея и структура"
+    assert all(h.strip() for h in task.hints)
+    assert "___" in task.template, "в заготовке должны быть пропуски ___"
+    assert task.hint_levels == len(task.hints) + 1
+
+
+@pytest.mark.parametrize("topic", TOPICS, ids=lambda t: t.id)
+def test_theory_examples_run(topic):
+    assert topic.theory.strip(), "у темы нет теории"
+    blocks = [c for kind, c in engine.split_theory(topic.theory) if kind == "sql"]
+    assert blocks, "в теории нет запускаемых примеров"
+    for sql in blocks:
+        res = engine.run_query(sql)
+        assert res.ok, f"{res.error}\n{sql}"
+        assert res.rows, f"пример вернул 0 строк:\n{sql}"
+
+
+def test_topic_ids_unique():
+    ids = [t.id for t in TOPICS]
+    assert len(ids) == len(set(ids))
+
+
+def test_split_theory():
+    md = "Текст\n\n```sql\nSELECT 1;\n```\n\n```\nне запускается\n```\nКонец"
+    parts = engine.split_theory(md)
+    assert parts[0] == ("md", "Текст")
+    assert parts[1] == ("sql", "SELECT 1;")
+    assert parts[2][0] == "md" and "не запускается" in parts[2][1]
+
+
+def test_legacy_single_hint(tmp_path):
+    p = tmp_path / "tasks.yaml"
+    p.write_text(
+        "topics:\n  - name: T\n    tasks:\n"
+        "      - {id: a, title: A, text: t, solution: SELECT 1, hint: старая}\n",
+        encoding="utf-8")
+    task = engine.load_topics(p)[0].tasks[0]
+    assert task.hints == ["старая"] and task.template == "" and task.hint_levels == 1
+
+
 def _task(tid):
     return next(t for t in ALL_TASKS if t.id == tid)
 

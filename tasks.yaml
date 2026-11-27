@@ -1,54 +1,84 @@
 # Задачи тренажёра.
 #
+# Поля темы:
+#   id        — уникальный идентификатор темы
+#   name      — название
+#   theory    — путь к файлу с теорией (Markdown; блоки ```sql можно запускать)
+#
 # Поля задачи:
 #   id        — уникальный идентификатор (не меняйте у существующих задач)
 #   title     — короткое название
 #   text      — условие (поддерживается Markdown)
 #   solution  — эталонный запрос; с его результатом сравнивается ответ
-#   hint      — подсказка
+#   hints     — подсказки по нарастающей: сначала идея, потом структура запроса
+#   template  — заготовка запроса с пропусками ___ (последний уровень подсказки)
 #   ordered   — true, если важен порядок строк (задачи с ORDER BY); по умолчанию false
 #
 # Имена столбцов при проверке не сравниваются, а их порядок и значения — сравниваются.
 
 topics:
-  - name: "1. Основы SELECT"
+  - id: select
+    name: "1. Основы SELECT"
+    theory: theory/01_select.md
     tasks:
       - id: select_all_departments
         title: "Все отделы"
         text: "Выведите все столбцы и все строки таблицы `departments`."
         solution: |
           SELECT * FROM departments;
-        hint: "`*` означает «все столбцы»."
+        hints:
+          - "Нужны все столбцы, а перечислять их вручную не обязательно."
+          - "`SELECT <все столбцы> FROM <таблица>`. «Все столбцы» обозначаются одним символом."
+        template: |
+          SELECT ___ FROM departments;
 
       - id: select_employee_names
         title: "Имена и должности"
         text: "Выведите имя, фамилию и должность каждого сотрудника (`first_name`, `last_name`, `position`)."
         solution: |
           SELECT first_name, last_name, position FROM employees;
-        hint: "Перечислите нужные столбцы через запятую после SELECT."
+        hints:
+          - "Выбираем не все столбцы, а только три конкретных."
+          - "Перечислите столбцы через запятую после SELECT в том порядке, как в условии."
+        template: |
+          SELECT first_name, ___, ___ FROM employees;
 
       - id: select_distinct_cities
         title: "Города клиентов"
         text: "Выведите список городов, в которых есть клиенты. Каждый город — один раз."
         solution: |
           SELECT DISTINCT city FROM customers;
-        hint: "Повторы убирает ключевое слово DISTINCT."
+        hints:
+          - "Один город может встречаться у нескольких клиентов. Нужно убрать повторы."
+          - "Повторы убирает ключевое слово DISTINCT. Оно ставится сразу после SELECT."
+        template: |
+          SELECT ___ city FROM customers;
 
       - id: select_price_with_vat
         title: "Цена с НДС"
         text: "Для каждого товара выведите название и цену с НДС 20% (цена × 1.2)."
         solution: |
           SELECT name, price * 1.2 AS price_with_vat FROM products;
-        hint: "В SELECT можно писать выражения: `price * 1.2`. Псевдоним задаётся через AS."
+        hints:
+          - "В SELECT можно писать не только столбцы, но и вычисления."
+          - "Цена с НДС — это `price * 1.2`. Столбцу можно дать имя через AS (необязательно)."
+        template: |
+          SELECT name, ___ AS price_with_vat FROM products;
 
-  - name: "2. Фильтрация WHERE"
+  - id: where
+    name: "2. Фильтрация WHERE"
+    theory: theory/02_where.md
     tasks:
       - id: where_high_salary
         title: "Высокие зарплаты"
         text: "Выведите имя, фамилию и зарплату сотрудников, которые получают больше 100 000."
         solution: |
           SELECT first_name, last_name, salary FROM employees WHERE salary > 100000;
-        hint: "Условие пишется после WHERE: `salary > 100000`."
+        hints:
+          - "Нужны не все строки, а только подходящие под условие. Условие пишется в WHERE."
+          - "`SELECT ... FROM employees WHERE <столбец> <оператор> <число>`."
+        template: |
+          SELECT first_name, last_name, salary FROM employees WHERE salary ___ 100000;
 
       - id: where_sales_managers_2020
         title: "Новые менеджеры"
@@ -57,7 +87,12 @@ topics:
           SELECT first_name, last_name, hire_date
           FROM employees
           WHERE position = 'Менеджер по продажам' AND hire_date >= '2020-01-01';
-        hint: "Два условия объединяются через AND. Даты в формате YYYY-MM-DD можно сравнивать как строки."
+        hints:
+          - "Здесь два условия одновременно: должность и дата найма."
+          - "Объедините условия через AND. Даты в формате YYYY-MM-DD сравниваются как строки: `hire_date >= '2020-01-01'`."
+        template: |
+          SELECT first_name, last_name, hire_date FROM employees
+          WHERE position = 'Менеджер по продажам' AND hire_date ___ '2020-01-01';
 
       - id: where_between_price
         title: "Периферия средней цены"
@@ -65,30 +100,49 @@ topics:
         solution: |
           SELECT name, price FROM products
           WHERE category = 'Периферия' AND price BETWEEN 5000 AND 15000;
-        hint: "`BETWEEN a AND b` включает обе границы."
+        hints:
+          - "Условий два: категория и диапазон цены. Для диапазона есть специальный оператор."
+          - "`price BETWEEN a AND b` включает обе границы. Категорию проверьте через `=`."
+        template: |
+          SELECT name, price FROM products
+          WHERE category = ___ AND price BETWEEN ___ AND ___;
 
       - id: where_null_email
         title: "Без почты"
         text: "Выведите имя и фамилию сотрудников, у которых не указан email."
         solution: |
           SELECT first_name, last_name FROM employees WHERE email IS NULL;
-        hint: "С NULL нельзя сравнивать через `=`, нужен оператор `IS NULL`."
+        hints:
+          - "Неуказанное значение в SQL — это NULL. Обычное сравнение с ним не работает."
+          - "`email = NULL` никогда не бывает истинным. Нужен специальный оператор `IS NULL`."
+        template: |
+          SELECT first_name, last_name FROM employees WHERE email ___;
 
       - id: where_like_ooo
         title: "Только ООО"
         text: "Выведите названия и города клиентов, чьё название начинается с «ООО»."
         solution: |
           SELECT name, city FROM customers WHERE name LIKE 'ООО%';
-        hint: "`LIKE 'ООО%'`: знак `%` означает любую последовательность символов."
+        hints:
+          - "Нужен поиск по шаблону строки, а не точное совпадение."
+          - "Оператор LIKE: знак `%` означает «любые символы». «Начинается с X» — это шаблон `'X%'`."
+        template: |
+          SELECT name, city FROM customers WHERE name LIKE ___;
 
-  - name: "3. Сортировка и LIMIT"
+  - id: order
+    name: "3. Сортировка и LIMIT"
+    theory: theory/03_order.md
     tasks:
       - id: order_top3_products
         title: "Три самых дорогих"
         text: "Выведите название и цену трёх самых дорогих товаров, от самого дорогого к более дешёвым."
         solution: |
           SELECT name, price FROM products ORDER BY price DESC LIMIT 3;
-        hint: "`ORDER BY price DESC` сортирует по убыванию, `LIMIT 3` оставляет первые три строки."
+        hints:
+          - "Сначала отсортируйте товары по цене, потом оставьте только первые строки."
+          - "`ORDER BY price DESC` — по убыванию, `LIMIT n` — первые n строк. LIMIT пишется в самом конце."
+        template: |
+          SELECT name, price FROM products ORDER BY price ___ LIMIT ___;
         ordered: true
 
       - id: order_by_hire_date
@@ -96,7 +150,11 @@ topics:
         text: "Выведите имя, фамилию и дату найма всех сотрудников, начиная с самых недавно нанятых."
         solution: |
           SELECT first_name, last_name, hire_date FROM employees ORDER BY hire_date DESC;
-        hint: "Чем позже дата, тем «больше» строка: нужна сортировка по убыванию."
+        hints:
+          - "Нужна сортировка по дате найма, причём новые сотрудники идут первыми."
+          - "Чем позже дата, тем она «больше». Значит, сортировка по убыванию: DESC."
+        template: |
+          SELECT first_name, last_name, hire_date FROM employees ORDER BY ___ ___;
         ordered: true
 
       - id: order_customers_city_name
@@ -104,31 +162,49 @@ topics:
         text: "Выведите город и название всех клиентов. Отсортируйте по городу по алфавиту, а внутри одного города — по названию."
         solution: |
           SELECT city, name FROM customers ORDER BY city, name;
-        hint: "В ORDER BY можно перечислить несколько столбцов через запятую."
+        hints:
+          - "Сортировка по двум столбцам: сначала по одному, при равенстве — по другому."
+          - "В ORDER BY перечислите столбцы через запятую. По умолчанию сортировка по возрастанию (ASC)."
+        template: |
+          SELECT city, name FROM customers ORDER BY ___, ___;
         ordered: true
 
-  - name: "4. Агрегаты и GROUP BY"
+  - id: aggregate
+    name: "4. Агрегаты и GROUP BY"
+    theory: theory/04_aggregate.md
     tasks:
       - id: agg_count_employees
         title: "Сколько сотрудников"
         text: "Посчитайте общее количество сотрудников."
         solution: |
           SELECT COUNT(*) FROM employees;
-        hint: "`COUNT(*)` считает строки."
+        hints:
+          - "Нужна не сама таблица, а одно число — количество строк."
+          - "Агрегатная функция `COUNT(*)` считает все строки таблицы."
+        template: |
+          SELECT ___ FROM employees;
 
       - id: agg_salary_stats
         title: "Статистика зарплат"
         text: "Выведите в одной строке среднюю, минимальную и максимальную зарплату (в таком порядке). Среднюю округлите до 2 знаков."
         solution: |
           SELECT ROUND(AVG(salary), 2), MIN(salary), MAX(salary) FROM employees;
-        hint: "Функции AVG, MIN, MAX. Округление делает `ROUND(x, 2)`."
+        hints:
+          - "Понадобятся три агрегатные функции в одном SELECT."
+          - "AVG — среднее, MIN — минимум, MAX — максимум. Округление делает `ROUND(x, 2)`."
+        template: |
+          SELECT ROUND(___(salary), 2), ___(salary), ___(salary) FROM employees;
 
       - id: agg_count_by_department
         title: "Сотрудники по отделам"
         text: "Для каждого `department_id` выведите количество сотрудников. Сотрудники без отдела тоже должны попасть в результат отдельной группой."
         solution: |
           SELECT department_id, COUNT(*) FROM employees GROUP BY department_id;
-        hint: "GROUP BY department_id. NULL образует свою группу."
+        hints:
+          - "Нужно посчитать количество не по всей таблице, а отдельно для каждого отдела."
+          - "GROUP BY department_id разбивает строки на группы, а COUNT(*) считает строки в каждой. Сотрудники с NULL попадут в отдельную группу автоматически."
+        template: |
+          SELECT department_id, COUNT(*) FROM employees GROUP BY ___;
 
       - id: agg_having_avg_salary
         title: "Богатые отделы"
@@ -138,16 +214,28 @@ topics:
           FROM employees
           GROUP BY department_id
           HAVING AVG(salary) > 110000;
-        hint: "Условие на агрегат пишется в HAVING, а не в WHERE."
+        hints:
+          - "Сначала сгруппируйте по отделам, потом отфильтруйте сами группы."
+          - "WHERE фильтрует строки до группировки, а условие на агрегат (AVG) пишется в HAVING после GROUP BY."
+        template: |
+          SELECT department_id, AVG(salary) FROM employees
+          GROUP BY department_id
+          HAVING ___ > 110000;
 
       - id: agg_orders_by_status
         title: "Заказы по статусам"
         text: "Выведите каждый статус заказа и количество заказов с этим статусом."
         solution: |
           SELECT status, COUNT(*) FROM orders GROUP BY status;
-        hint: "Сгруппируйте таблицу `orders` по столбцу `status`."
+        hints:
+          - "Подсчёт для каждого значения столбца — это группировка."
+          - "Сгруппируйте `orders` по `status` и посчитайте строки в каждой группе."
+        template: |
+          SELECT status, ___ FROM orders GROUP BY ___;
 
-  - name: "5. Соединения JOIN"
+  - id: join
+    name: "5. Соединения JOIN"
+    theory: theory/05_join.md
     tasks:
       - id: join_employee_department
         title: "Сотрудник и отдел"
@@ -156,7 +244,13 @@ topics:
           SELECT e.first_name, e.last_name, d.name
           FROM employees e
           JOIN departments d ON d.id = e.department_id;
-        hint: "`JOIN departments d ON d.id = e.department_id`."
+        hints:
+          - "Имя сотрудника лежит в `employees`, а название отдела — в `departments`. Таблицы нужно соединить."
+          - "`FROM employees e JOIN departments d ON <условие связи>`. Связь: `department_id` сотрудника равен `id` отдела. Обычный JOIN сам отбросит сотрудников без отдела."
+        template: |
+          SELECT e.first_name, e.last_name, d.name
+          FROM employees e
+          JOIN departments d ON ___ = ___;
 
       - id: join_left_all_employees
         title: "Все сотрудники и отделы"
@@ -165,7 +259,13 @@ topics:
           SELECT e.first_name, e.last_name, d.name
           FROM employees e
           LEFT JOIN departments d ON d.id = e.department_id;
-        hint: "LEFT JOIN сохраняет все строки левой таблицы."
+        hints:
+          - "Обычный JOIN теряет строки без пары. Нужен вид соединения, который сохраняет все строки левой таблицы."
+          - "LEFT JOIN оставляет всех сотрудников. Если отдел не найден, его столбцы будут NULL."
+        template: |
+          SELECT e.first_name, e.last_name, d.name
+          FROM employees e
+          ___ JOIN departments d ON d.id = e.department_id;
 
       - id: join_empty_departments
         title: "Пустые отделы"
@@ -175,14 +275,25 @@ topics:
           FROM departments d
           LEFT JOIN employees e ON e.department_id = d.id
           WHERE e.id IS NULL;
-        hint: "LEFT JOIN от departments к employees, затем оставьте строки, где сотрудник не нашёлся (`e.id IS NULL`)."
+        hints:
+          - "Ищем отделы, для которых не нашлось ни одного сотрудника. Удобно соединить таблицы так, чтобы отделы без пары тоже остались."
+          - "LEFT JOIN от `departments` к `employees`: у пустого отдела все столбцы сотрудника будут NULL. Отфильтруйте такие строки в WHERE."
+        template: |
+          SELECT d.name
+          FROM departments d
+          LEFT JOIN employees e ON e.department_id = d.id
+          WHERE ___ IS NULL;
 
       - id: join_order_totals
         title: "Сумма заказа"
         text: "Для каждого заказа выведите его `id` и общую сумму (сумма `quantity * unit_price` по позициям)."
         solution: |
           SELECT order_id, SUM(quantity * unit_price) FROM order_items GROUP BY order_id;
-        hint: "Здесь хватит таблицы `order_items` и GROUP BY по `order_id`."
+        hints:
+          - "Сумма позиции — это количество × цена. Сумма заказа — сумма по всем его позициям."
+          - "Хватит одной таблицы `order_items`: сгруппируйте по `order_id` и сложите `quantity * unit_price` через SUM."
+        template: |
+          SELECT order_id, SUM(___) FROM order_items GROUP BY ___;
 
       - id: join_revenue_by_customer
         title: "Выручка по клиентам"
@@ -195,7 +306,17 @@ topics:
           WHERE o.status <> 'cancelled'
           GROUP BY c.id, c.name
           ORDER BY revenue DESC;
-        hint: "Соедините три таблицы: customers → orders → order_items. Отменённые отсейте в WHERE, затем GROUP BY и ORDER BY."
+        hints:
+          - "Название клиента — в `customers`, статус — в `orders`, суммы — в `order_items`. Понадобятся все три таблицы."
+          - "Цепочка: customers → orders (по customer_id) → order_items (по order_id). Отменённые отсейте в WHERE, затем GROUP BY по клиенту и ORDER BY по сумме по убыванию."
+        template: |
+          SELECT c.name, SUM(oi.quantity * oi.unit_price) AS revenue
+          FROM customers c
+          JOIN orders o ON o.customer_id = c.id
+          JOIN order_items oi ON ___
+          WHERE o.status ___ 'cancelled'
+          GROUP BY c.id, c.name
+          ORDER BY ___;
         ordered: true
 
       - id: join_self_manager
@@ -205,9 +326,17 @@ topics:
           SELECT e.first_name, e.last_name, m.first_name, m.last_name
           FROM employees e
           JOIN employees m ON m.id = e.manager_id;
-        hint: "Соедините таблицу `employees` саму с собой под двумя разными псевдонимами."
+        hints:
+          - "Руководитель — тоже сотрудник из той же таблицы. Таблицу можно соединить саму с собой."
+          - "Используйте `employees` дважды под разными псевдонимами: `e` — сотрудник, `m` — руководитель. Связь: `m.id = e.manager_id`."
+        template: |
+          SELECT e.first_name, e.last_name, m.first_name, m.last_name
+          FROM employees e
+          JOIN employees m ON ___ = ___;
 
-  - name: "6. Подзапросы"
+  - id: subquery
+    name: "6. Подзапросы"
+    theory: theory/06_subquery.md
     tasks:
       - id: sub_above_avg_salary
         title: "Выше среднего"
@@ -216,7 +345,12 @@ topics:
           SELECT first_name, last_name, salary
           FROM employees
           WHERE salary > (SELECT AVG(salary) FROM employees);
-        hint: "Среднюю зарплату можно получить подзапросом прямо в WHERE."
+        hints:
+          - "Сначала нужно узнать среднюю зарплату, а потом сравнить с ней каждого сотрудника."
+          - "Среднюю можно посчитать вложенным запросом прямо в WHERE: `salary > (SELECT ...)`."
+        template: |
+          SELECT first_name, last_name, salary FROM employees
+          WHERE salary > (SELECT ___ FROM employees);
 
       - id: sub_never_ordered
         title: "Невостребованные товары"
@@ -224,7 +358,12 @@ topics:
         solution: |
           SELECT name FROM products
           WHERE id NOT IN (SELECT product_id FROM order_items);
-        hint: "`NOT IN (SELECT product_id FROM order_items)` или `NOT EXISTS`."
+        hints:
+          - "Нужны товары, id которых не встречается среди заказанных позиций."
+          - "Список заказанных товаров даёт `SELECT product_id FROM order_items`. Отберите товары, которых нет в этом списке: NOT IN или NOT EXISTS."
+        template: |
+          SELECT name FROM products
+          WHERE id ___ (SELECT product_id FROM order_items);
 
       - id: sub_repeat_customers
         title: "Постоянные клиенты"
@@ -236,9 +375,20 @@ topics:
               GROUP BY customer_id
               HAVING COUNT(*) > 1
           );
-        hint: "Во вложенном запросе сгруппируйте заказы по клиенту и оставьте группы с `COUNT(*) > 1`."
+        hints:
+          - "Сначала найдите id клиентов с несколькими заказами, потом выведите их названия."
+          - "Во вложенном запросе сгруппируйте `orders` по `customer_id` и оставьте группы с `COUNT(*) > 1`. Во внешнем — `WHERE id IN (...)`."
+        template: |
+          SELECT name FROM customers
+          WHERE id IN (
+              SELECT customer_id FROM orders
+              GROUP BY ___
+              HAVING ___
+          );
 
-  - name: "7. Оконные функции"
+  - id: window
+    name: "7. Оконные функции"
+    theory: theory/07_window.md
     tasks:
       - id: win_rank_in_department
         title: "Ранг внутри отдела"
@@ -248,7 +398,14 @@ topics:
                  RANK() OVER (PARTITION BY department_id ORDER BY salary DESC)
           FROM employees
           WHERE department_id IS NOT NULL;
-        hint: "`RANK() OVER (PARTITION BY ... ORDER BY ... DESC)`."
+        hints:
+          - "Нужна нумерация внутри каждого отдела без схлопывания строк. Это задача для оконной функции."
+          - "`RANK() OVER (PARTITION BY <группа> ORDER BY <столбец> DESC)`. RANK даёт равным значениям одинаковый ранг и пропускает следующий."
+        template: |
+          SELECT department_id, first_name, last_name, salary,
+                 RANK() OVER (PARTITION BY ___ ORDER BY ___)
+          FROM employees
+          WHERE department_id IS NOT NULL;
 
       - id: win_diff_from_dept_avg
         title: "Отклонение от средней"
@@ -258,7 +415,14 @@ topics:
                  salary - AVG(salary) OVER (PARTITION BY department_id)
           FROM employees
           WHERE department_id IS NOT NULL;
-        hint: "AVG тоже может быть оконной функцией: `AVG(salary) OVER (PARTITION BY department_id)`."
+        hints:
+          - "Средняя по отделу нужна в каждой строке рядом с зарплатой сотрудника, без группировки."
+          - "Агрегатные функции тоже работают как оконные: `AVG(salary) OVER (PARTITION BY department_id)`."
+        template: |
+          SELECT first_name, last_name, salary,
+                 salary - ___ OVER (PARTITION BY ___)
+          FROM employees
+          WHERE department_id IS NOT NULL;
 
       - id: win_running_revenue
         title: "Нарастающий итог"
@@ -276,5 +440,19 @@ topics:
                  SUM(revenue) OVER (ORDER BY month)
           FROM monthly
           ORDER BY month;
-        hint: "Сначала посчитайте выручку по месяцам (удобно в CTE через WITH), затем `SUM(revenue) OVER (ORDER BY month)`. Месяц даёт `strftime('%Y-%m', order_date)`."
+        hints:
+          - "Задача в два шага: выручка по месяцам, затем нарастающий итог по ним."
+          - "Шаг 1 удобно вынести в CTE (`WITH monthly AS (...)`): месяц — `strftime('%Y-%m', order_date)`, плюс SUM и GROUP BY. Шаг 2: `SUM(revenue) OVER (ORDER BY month)`."
+        template: |
+          WITH monthly AS (
+              SELECT strftime('%Y-%m', o.order_date) AS month,
+                     SUM(oi.quantity * oi.unit_price) AS revenue
+              FROM orders o
+              JOIN order_items oi ON oi.order_id = o.id
+              WHERE ___
+              GROUP BY month
+          )
+          SELECT month, revenue, SUM(revenue) OVER (___)
+          FROM monthly
+          ORDER BY month;
         ordered: true
